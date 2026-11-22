@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>灾鉴 · 旭日图（真实数据版）</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<script src="../data.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"PingFang SC","Microsoft YaHei",sans-serif; background:#F2F6F3; color:#31403B; }
+  header { display:flex; align-items:center; justify-content:space-between; padding:14px 24px; background:#fff; border-bottom:1px solid #E3EAE6; }
+  header h1 { font-size:18px; }
+  header .sub { font-size:11px; color:#7E8C85; margin-top:2px; }
+  #chips { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .chip { background:#6AD1A3; color:#fff; border-radius:12px; padding:3px 12px; font-size:12px; font-weight:bold; }
+  .chip button { background:none; border:none; color:#fff; cursor:pointer; margin-left:6px; font-size:13px; }
+  .clearbtn { background:#EDF2EF; border:1px solid #E3EAE6; border-radius:12px; padding:3px 12px; font-size:12px; color:#7E8C85; cursor:pointer; }
+  main { display:grid; grid-template-columns:1fr; gap:16px; padding:16px 24px; }
+  .card { background:#fff; border:1px solid #E3EAE6; border-radius:12px; padding:16px; position:relative; }
+  .card h3 { font-size:14px; display:flex; align-items:center; gap:8px; }
+  .tag { font-size:10px; font-weight:normal; color:#6AD1A3; background:#EAF7F1; padding:2px 8px; border-radius:10px; }
+  .chart { height:440px; margin-top:8px; }
+  .reset-btn { position:absolute; top:8px; right:10px; z-index:10; background:#EDF2EF; border:1px solid #E3EAE6;
+    border-radius:12px; padding:3px 14px; font-size:11px; color:#7E8C85; cursor:pointer; font-family:inherit; transition:.2s; }
+  .reset-btn:hover { background:#6AD1A3; color:#fff; border-color:#6AD1A3; }
+</style>
+<style>
+header{display:none!important} body{background:#fff!important}
+main{padding:4px 8px!important;gap:8px!important} .card{padding:8px!important;border:none!important}
+.card h3{display:none!important} .chart{height:calc(100vh - 46px)!important;margin-top:0!important}
+</style></head>
+<body>
+
+<header>
+  <div>
+    <h1>灾鉴 · 旭日图</h1>
+    <div class="sub" id="subtitle">GLOBAL DISASTER ATLAS · 点扇区下钻 / 点中心圆返回</div>
+  </div>
+  <div id="chips"></div>
+</header>
+
+<main>
+  <section class="card">
+    <h3>旭日图 · 大洲 → 国家 → 灾种 <span class="tag">点扇区下钻 / 点中心圆返回</span></h3>
+    <button id="resetBtn" class="reset-btn" title="返回根层级并清除筛选">还原</button>
+    <div id="sunburst" class="chart"></div>
+  </section>
+</main>
+
+<script>
+/* ===== 灾种配色（与全站一致）===== */
+const DISASTER_COLORS = {
+  '地震':'#FFA288','洪水':'#7FBDDA','台风/飓风':'#6AD1A3','野火':'#FFD47D','干旱':'#C49892',
+  '滑坡':'#84ADDC','龙卷风':'#BBC7BE','海啸':'#929EAB','火山喷发':'#D9B3AC','雪崩':'#E8EDEA'
+};
+const REGION_COLORS = {'亚洲':'#6AD1A3','非洲':'#FFD47D','南美洲':'#FFA288','北美洲':'#7FBDDA','欧洲':'#C49892','大洋洲':'#84ADDC'};
+
+function mockTree(){
+  return [{name:'亚洲', itemStyle:{color:'#6AD1A3'}, children:[{name:'印度尼西亚', children:[{name:'地震',value:120},{name:'洪水',value:90}]}]}];
+}
+const TREE_DATA = window.TREE_DATA || mockTree();
+
+/* 叶子=灾种：统一着色（联动的命门）；大洲层用 REGION_COLORS */
+function paintTree(nodes, depth){
+  nodes.forEach(n => {
+    if(n.children && n.children.length){ if(depth===0) n.itemStyle = {color: REGION_COLORS[n.name] || '#929EAB'}; paintTree(n.children, depth+1); }
+    else n.itemStyle = {color: DISASTER_COLORS[n.name] || '#929EAB'};
+  });
+}
+paintTree(TREE_DATA, 0);
+
+if(window.KPI){
+  document.getElementById('subtitle').textContent =
+    `GLOBAL DISASTER ATLAS · ${window.KPI.year_range} · ${window.KPI.events.toLocaleString()} 起 · ${window.KPI.countries} 国（2026 不完整已截尾）`;
+}
+
+/* ===== 旭日图 ===== */
+const sbChart = echarts.init(document.getElementById('sunburst'));
+function sunburstOption(){
+  return {
+    tooltip:{ formatter: p => `<b>${p.treePathInfo.slice(1).map(n=>n.name).join(' / ')}</b><br/>事件 ${p.value} 起` },
+    series:{
+      type:'sunburst', radius:['10%','94%'], nodeClick:'rootToNode', sort: undefined,
+      emphasis:{ focus:'ancestor' },
+      label:{ minAngle:5, rotate:'radial', fontSize:10, color:'#31403B' },
+      itemStyle:{ borderColor:'#fff', borderWidth:2 },
+      levels:[ {},
+        { r0:'10%', r:'32%', label:{ rotate:0, fontWeight:'bold', fontSize:12 } },
+        { r0:'32%', r:'62%', label:{ fontSize:9 } },
+        { r0:'62%', r:'94%', label:{ rotate:'tangential', fontSize:9 } } ],
+      data: TREE_DATA
+    }
+  };
+}
+sbChart.setOption(sunburstOption());
+sbChart.on('click', p => {
+  if(p.componentType !== 'series') return;
+  const path = p.treePathInfo.slice(1).map(n => n.name);
+  const f = { source:'sunburst' };
+  if(path.length>=1) f.continent = path[0];
+  if(path.length>=2) f.country   = path[1];
+  if(path.length>=3) f.disaster  = path[2];
+  const cur = window.__filter;
+  const same = cur && cur.source==='sunburst' && cur.country===f.country && cur.disaster===f.disaster;
+  window.__filter = same ? null : f;
+  window.parent.postMessage({type:'filter', filter: window.__filter}, '*');
+  if(same) sbChart.dispatchAction({type:'downplay', seriesIndex:0});
+});
+/* 还原按钮：返回根层级 + 清除全局筛选 */
+document.getElementById('resetBtn').addEventListener('click', function(){
+  window.__filter = null;
+  sbChart.setOption(sunburstOption(), true);
+  window.parent.postMessage({type:'filter', filter:null}, '*');
+});
+window.addEventListener('resize', () => { sbChart.resize(); });
+</script>
+<script>
+(function(){
+  window.addEventListener('message', function(e){ var d = e.data || {};
+    if(d.type !== 'applyFilter') return;
+    if(d.filter && d.filter.source !== 'sunburst') window.__filter = d.filter;
+    if(!d.filter){ window.__filter = null; var inst = echarts.getInstanceByDom(document.getElementById('sunburst')); if(inst) inst.dispatchAction({type:'downplay', seriesIndex:0}); }
+  });
+})();
+</script></body>
+</html>

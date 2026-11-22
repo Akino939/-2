@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>散点图: 46国事件量x死亡人数双对数</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Helvetica Neue", sans-serif;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            min-height: 100vh;
+            padding: 30px;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(73, 122, 183, 0.15);
+            padding: 30px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 24px;
+            color: #2c3e50;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .header p {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        #chart { width: 100%; height: 580px; }
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .stat-item {
+            background: linear-gradient(135deg, #BDE2ED, #7EB6D5);
+            color: #2c3e50;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .stat-item b { font-size: 16px; color: #1a365d; }
+        .note {
+            text-align: center;
+            color: #95a5a6;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+    </style>
+<style>html,body{height:100%!important;margin:0!important;padding:0!important;background:#fff!important;overflow:hidden}#chart{width:100%!important}.card,.container{box-shadow:none!important;border:none!important;margin:0!important;padding:0!important;height:100%!important;display:flex!important;flex-direction:column!important}#chart{flex:1!important;height:auto!important;min-height:0!important;margin-top:6px!important}.stats-bar{margin:6px 0 9px!important;padding:4px 8px!important;font-size:11px!important;flex-wrap:nowrap!important;gap:10px!important;justify-content:center!important;flex-shrink:0}.stat-item{padding:5px 12px!important;font-size:11px!important;white-space:nowrap}.stat-item b{font-size:13px!important}</style></head>
+<body>
+    <div class="container">
+        
+        <div class="stats-bar">
+            <div class="stat-item">Pearson R = <b>0.859</b></div>
+            <div class="stat-item">斜率 = <b>1.27</b></div>
+            <div class="stat-item">样本数 = <b>46</b> 国</div>
+        </div>
+        <div id="chart"></div>
+        
+    </div>
+
+    <script>
+        var regionColors = {
+            'Asia': '#6AD1A3',
+            'Africa': '#FFD47D',
+            'North America': '#FFA288',
+            'South America': '#C49892',
+            'Europe': '#84ADDC',
+            'Oceania': '#929EAB',
+            'Asia/Europe': '#84ADDC',
+            'Europe/Asia': '#6AD1A3'
+        };
+
+        var scatterData = [
+            { name: "Afghanistan", value: [63, 1642], region: "Asia", severity: 0.069 },
+            { name: "Algeria", value: [82, 39333], region: "Africa", severity: 0.483 },
+            { name: "Argentina", value: [47, 3139], region: "South America", severity: 0.345 },
+            { name: "Armenia", value: [17, 215], region: "Asia", severity: 0.0 },
+            { name: "Australia", value: [318, 23520], region: "Oceania", severity: 0.448 },
+            { name: "Bangladesh", value: [323, 25253], region: "Asia", severity: 0.517 },
+            { name: "Brazil", value: [323, 12638], region: "South America", severity: 0.241 },
+            { name: "Canada", value: [55, 10125], region: "North America", severity: 0.931 },
+            { name: "Chile", value: [353, 85545], region: "South America", severity: 1.0 },
+            { name: "China", value: [443, 53892], region: "Asia", severity: 0.379 },
+            { name: "Colombia", value: [347, 16617], region: "South America", severity: 0.621 },
+            { name: "Ecuador", value: [59, 5731], region: "South America", severity: 0.69 },
+            { name: "Ethiopia", value: [13, 1753], region: "Africa", severity: 0.931 },
+            { name: "France", value: [53, 2129], region: "Europe", severity: 0.862 },
+            { name: "Greece", value: [133, 20853], region: "Europe", severity: 0.138 },
+            { name: "Guatemala", value: [28, 3373], region: "North America", severity: 0.034 },
+            { name: "Haiti", value: [39, 6772], region: "North America", severity: 0.759 },
+            { name: "India", value: [486, 85829], region: "Asia", severity: 0.483 },
+            { name: "Indonesia", value: [712, 90355], region: "Asia", severity: 0.621 },
+            { name: "Iran", value: [71, 8723], region: "Asia", severity: 0.552 },
+            { name: "Italy", value: [141, 13152], region: "Europe", severity: 0.552 },
+            { name: "Japan", value: [434, 94531], region: "Asia", severity: 0.483 },
+            { name: "Kenya", value: [261, 44109], region: "Africa", severity: 0.655 },
+            { name: "Mexico", value: [474, 43625], region: "North America", severity: 0.793 },
+            { name: "Morocco", value: [105, 20902], region: "Africa", severity: 0.31 },
+            { name: "Myanmar", value: [333, 65211], region: "Asia", severity: 0.31 },
+            { name: "Nepal", value: [422, 29832], region: "Asia", severity: 0.586 },
+            { name: "New Zealand", value: [89, 3926], region: "Oceania", severity: 0.517 },
+            { name: "Nigeria", value: [284, 40670], region: "Africa", severity: 0.552 },
+            { name: "Pakistan", value: [330, 25202], region: "Asia", severity: 0.345 },
+            { name: "Papua New Guinea", value: [31, 375], region: "Oceania", severity: 0.759 },
+            { name: "Peru", value: [138, 154355], region: "South America", severity: 0.379 },
+            { name: "Philippines", value: [516, 29539], region: "Asia", severity: 0.517 },
+            { name: "Portugal", value: [48, 5145], region: "Europe", severity: 0.828 },
+            { name: "Romania", value: [10, 215], region: "Europe", severity: 0.414 },
+            { name: "Russia", value: [75, 1669], region: "Asia/Europe", severity: 0.103 },
+            { name: "Somalia", value: [297, 22928], region: "Africa", severity: 0.655 },
+            { name: "South Africa", value: [44, 4504], region: "Africa", severity: 0.897 },
+            { name: "South Sudan", value: [296, 30298], region: "Africa", severity: 0.207 },
+            { name: "Spain", value: [55, 2508], region: "Europe", severity: 0.793 },
+            { name: "Sudan", value: [247, 9094], region: "Africa", severity: 0.379 },
+            { name: "Taiwan", value: [27, 490], region: "Asia", severity: 0.931 },
+            { name: "Thailand", value: [324, 24889], region: "Asia", severity: 0.207 },
+            { name: "Turkey", value: [218, 12511], region: "Europe/Asia", severity: 0.345 },
+            { name: "United States", value: [578, 64351], region: "North America", severity: 0.586 },
+            { name: "Vietnam", value: [258, 89926], region: "Asia", severity: 0.448 }
+        ];
+
+        var regions = ['Asia', 'Africa', 'North America', 'South America', 'Europe', 'Oceania', 'Asia/Europe', 'Europe/Asia'];
+        var series = [];
+
+        regions.forEach(function(region) {
+            var points = scatterData.filter(function(d) { return d.region === region; });
+            if (points.length === 0) return;
+            series.push({
+                name: region,
+                type: 'scatter',
+                data: points.map(function(d) {
+                    return {
+                        name: d.name,
+                        value: d.value,
+                        symbolSize: 15 + d.severity * 30,
+                        itemStyle: {
+                            color: regionColors[region],
+                            opacity: 0.82,
+                            borderColor: '#fff',
+                            borderWidth: 1.5
+                        }
+                    };
+                })
+            });
+        });
+
+        var fitLine = [[6.3, 241.7],[7.0, 276.5],[7.8, 316.2],[8.7, 361.8],[9.6, 413.8],[10.7, 473.4],[11.9, 541.5],[13.2, 619.4],[14.7, 708.5],[16.4, 810.5],[18.2, 927.1],[20.2, 1060.6],[22.5, 1213.2],[25.0, 1387.8],[27.8, 1587.5],[30.9, 1815.9],[34.3, 2077.3],[38.1, 2376.2],[42.4, 2718.2],[47.1, 3109.3],[52.4, 3556.8],[58.3, 4068.6],[64.8, 4654.1],[72.0, 5323.9],[80.0, 6090.1],[89.0, 6966.5],[98.9, 7969.0],[109.9, 9115.8],[122.2, 10427.6],[135.9, 11928.2],[151.0, 13644.8],[167.9, 15608.3],[186.6, 17854.5],[207.5, 20423.9],[230.6, 23363.0],[256.4, 26725.1],[285.0, 30571.1],[316.8, 34970.5],[352.2, 40003.0],[391.6, 45759.7],[435.3, 52344.8],[483.9, 59877.7],[537.9, 68494.5],[598.0, 78351.3],[664.7, 89626.7],[738.9, 102524.6],[821.4, 117278.6],[913.1, 134155.9],[1015.1, 153461.9],[1128.4, 175546.1]];
+
+        series.push({
+            name: '拟合线',
+            type: 'line',
+            data: fitLine,
+            smooth: true,
+            symbol: 'none',
+            lineStyle: {
+                color: '#F27144',
+                width: 2.5,
+                type: 'solid'
+            },
+            tooltip: { show: false },
+            legendHoverLink: false
+        });
+
+        var chart = echarts.init(document.getElementById('chart'));
+
+        var option = {
+            tooltip: {
+                trigger: 'item',
+                backgroundColor: 'rgba(44, 62, 80, 0.95)',
+                borderColor: 'transparent',
+                textStyle: { color: '#fff', fontSize: 13 },
+                formatter: function(params) {
+                    if (params.seriesName === '拟合线') return '';
+                    return '<div style="font-weight:600;margin-bottom:6px;">' + params.name + '</div>' +
+                           '<div>区域: ' + params.data.region + '</div>' +
+                           '<div>事件量: <b>' + params.data.value[0] + '</b> 起</div>' +
+                           '<div>死亡数: <b>' + params.data.value[1].toLocaleString() + '</b> 人</div>';
+                }
+            },
+            legend: {
+                data: regions.filter(function(r) { 
+                    return scatterData.some(function(d) { return d.region === r; });
+                }),
+                top: 1,
+                textStyle: { color: '#2c3e50' },
+                itemWidth: 14,
+                itemHeight: 14
+            },
+            grid: {
+                left: '9%',
+                right: '6%',
+                top: '16%',
+                bottom: '13%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'log',
+                name: '事件量 (起)',
+                nameLocation: 'middle',
+                nameGap: 40,
+                nameTextStyle: { color: '#2c3e50', fontSize: 11, fontWeight: 400 },
+                min: 5,
+                max: 1000,
+                logBase: 10,
+                axisLabel: {
+                    color: '#7f8c8d',
+                    formatter: function(v) { return v; }
+                },
+                axisLine: { lineStyle: { color: '#bdc3c7' } },
+                splitLine: { lineStyle: { color: '#ecf0f1', type: 'dashed' } }
+            },
+            yAxis: {
+                type: 'log',
+                name: '死亡人数',
+                nameLocation: 'middle',
+                nameGap: 50,
+                nameTextStyle: { color: '#2c3e50', fontSize: 11, fontWeight: 400 },
+                min: 100,
+                max: 200000,
+                logBase: 10,
+                axisLabel: {
+                    color: '#7f8c8d',
+                    formatter: function(v) { return v; }
+                },
+                axisLine: { lineStyle: { color: '#bdc3c7' } },
+                splitLine: { lineStyle: { color: '#ecf0f1', type: 'dashed' } }
+            },
+            series: series
+        };
+
+        chart.setOption(option);
+        window.addEventListener('resize', function() { chart.resize(); });
+    </script>
+<style></style><script>
+(function(){
+  var dom = document.getElementById('chart'); if(!dom) return;
+  var inst = null;
+  function boot(){ inst = echarts.getInstanceByDom(dom); if(!inst){ setTimeout(boot,150); return; }
+    inst.on('click', function(p){ var f = (function(p){ return null; })(p); if(f) window.parent.postMessage({type:'filter', filter:f},'*'); });
+  }
+  boot();
+  window.addEventListener('message', function(e){ var d = e.data || {};
+    if(d.type !== 'applyFilter') return; (function(inst,f){ if(inst) inst.dispatchAction({type:"downplay"}); })(inst, d.filter); });
+})();
+</script></body>
+</html>

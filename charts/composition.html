@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>灾鉴 · 灾种构成（矩形树图 / 玫瑰图切换）</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { padding:24px; background:#F5F7FA; font-family:"Microsoft YaHei","PingFang SC",Arial,sans-serif; color:#2F3540; }
+  .card { background:#fff; border:1px solid #E6EBF0; border-radius:12px; box-shadow:0 4px 16px rgba(73,122,183,.10); padding:16px; }
+  .btns { display:flex; gap:8px; margin:0 0 8px 2px; flex-wrap:nowrap; }
+  .btn { padding:4px 14px; font-size:12px; border-radius:6px; cursor:pointer; user-select:none; background:#fff; color:#497AB7; border:1px solid #BDE2ED; transition:.2s; font-family:inherit; white-space:nowrap; }
+  .btn:hover { background:#F0FAD9; }
+  .btn.active { background:#497AB7; color:#fff; border-color:#497AB7; }
+  .chart { width:100%; height:560px; display:none; }
+  .chart.active { display:block; }
+</style>
+<style>html,body{height:100%!important;margin:0!important;padding:0!important;background:#fff!important;overflow:hidden}.card{box-shadow:none!important;border:none!important;margin:0!important;padding:0!important;height:100%!important;display:flex!important;flex-direction:column!important}.btns{padding:8px 2px!important;margin:2px 0 3px!important;flex-wrap:nowrap!important;justify-content:center!important;flex-shrink:0}.btn{padding:3px 12px!important;font-size:11px!important}.chart{width:100%!important;flex:1!important;height:auto!important;min-height:0!important;display:none!important}.chart.active{display:block!important}</style>
+</head>
+<body>
+<div class="card">
+  <div class="btns">
+    <button class="btn active" data-v="tree">矩形树图</button>
+    <button class="btn" data-v="rose">玫瑰图</button>
+  </div>
+  <div id="tree" class="chart active"></div>
+  <div id="rose" class="chart"></div>
+</div>
+
+<script>
+/* 灾种配色（与全站一致），灾害名已中文化 */
+var compData = [
+    { name: "地震",     value: 9800, real_value: 2990, deaths: 540742, itemStyle: { color: "#FFA288" } },
+    { name: "洪水",     value: 8234, real_value: 2261, deaths: 259675, itemStyle: { color: "#7FBDDA" } },
+    { name: "台风/飓风", value: 5805, real_value: 1331, deaths: 150442, itemStyle: { color: "#6AD1A3" },
+      labelLine: { length: 2, length2: 2 } },
+    { name: "野火",     value: 4178, real_value: 845,  deaths: 107508, itemStyle: { color: "#FFD47D" } },
+    { name: "滑坡",     value: 3588, real_value: 696,  deaths: 65442,  itemStyle: { color: "#84ADDC" } },
+    { name: "干旱",     value: 3107, real_value: 585,  deaths: 29166,  itemStyle: { color: "#C49892" } },
+    { name: "火山喷发", value: 2138, real_value: 391,  deaths: 36019,  itemStyle: { color: "#D9B3AC" } },
+    { name: "海啸",     value: 2099, real_value: 384,  deaths: 41007,  itemStyle: { color: "#929EAB" } },
+    { name: "龙卷风",   value: 1785, real_value: 330,  deaths: 91695,  itemStyle: { color: "#BBC7BE" } },
+    { name: "雪崩",     value: 800,  real_value: 187,  deaths: 9698,   itemStyle: { color: "#E8EDEA" } }
+];
+var totalEvents = compData.reduce(function(s,d){ return s + d.real_value; }, 0);
+compData.forEach(function(d){ d.percentage = +(d.real_value / totalEvents * 100).toFixed(2); });
+
+var treeChart = null, roseChart = null;
+var active = 'tree';
+
+function initTree(){
+    if(treeChart) return;
+    treeChart = echarts.init(document.getElementById('tree'));
+    treeChart.setOption({
+        tooltip: {
+            trigger: 'item',
+            backgroundColor: 'rgba(44, 62, 80, 0.95)',
+            borderColor: 'transparent',
+            textStyle: { color: '#fff', fontSize: 13 },
+            formatter: function(params) {
+                return '<div style="font-weight:600;margin-bottom:6px;">' + params.name + '</div>' +
+                       '<div>事件量: <b>' + params.data.real_value.toLocaleString() + '</b> 起</div>' +
+                       '<div>总死亡: <b>' + params.data.deaths.toLocaleString() + '</b> 人</div>' +
+                       '<div style="margin-top:4px;color:#BDC3C7;">占比: ' + params.data.percentage + '%</div>';
+            }
+        },
+        series: [{
+            type: 'treemap',
+            data: compData,
+            left: '2%', right: '2%', top: '4%', bottom: '2%',
+            roam: false, nodeClick: false,
+            breadcrumb: { show: false },
+            label: {
+                show: true,
+                formatter: function(params) {
+                    return '{name|' + params.name + '}\n{val|' + params.data.real_value.toLocaleString() + ' 起}\n{pct|' + params.data.percentage + '%}';
+                },
+                rich: {
+                    name: { fontSize: 14, fontWeight: 'bold', color: '#2c3e50', lineHeight: 20, padding: [4, 8, 0, 8] },
+                    val:  { fontSize: 12, color: '#34495e', lineHeight: 18, padding: [0, 8, 0, 8] },
+                    pct:  { fontSize: 11, color: '#7f8c8d', lineHeight: 16, padding: [0, 8, 8, 8] }
+                }
+            },
+            itemStyle: { borderColor: '#ffffff', borderWidth: 3, gapWidth: 2, borderRadius: 6 },
+            levels: [{ itemStyle: { borderColor: '#ffffff', borderWidth: 3, gapWidth: 2 } }]
+        }]
+    });
+    treeChart.on('click', function(p){
+        if(p.componentType !== 'series') return;
+        window.parent.postMessage({type:'filter', filter:{source:'composition', disaster:p.name}}, '*');
+    });
+}
+
+function initRose(){
+    if(roseChart) return;
+    roseChart = echarts.init(document.getElementById('rose'));
+    roseChart.setOption({
+        tooltip: {
+            trigger: 'item',
+            backgroundColor: 'rgba(44, 62, 80, 0.95)',
+            borderColor: 'transparent',
+            textStyle: { color: '#fff', fontSize: 13 },
+            formatter: function(params) {
+                return '<div style="font-weight:600;margin-bottom:6px;">' + params.name + '</div>' +
+                       '<div>事件量: <b>' + params.value.toLocaleString() + '</b> 起</div>' +
+                       '<div>占比: <b>' + params.data.percentage + '</b>%</div>';
+            }
+        },
+        legend: {
+            orient: 'vertical', right: 4, top: 'center',
+            itemWidth: 12, itemHeight: 12, itemGap: 8,
+            textStyle: { color: '#2c3e50', fontSize: 11 },
+            formatter: function(name) {
+                var item = compData.find(function(d){ return d.name === name; });
+                return item ? (name + '  ' + item.percentage + '%') : name;
+            }
+        },
+        series: [{
+            type: 'pie',
+            radius: ['12%', '62%'],
+            center: ['37%', '50%'],
+            roseType: 'area',
+            data: compData,
+            sort: 'descending',
+            minShowLabelAngle: 4,
+            labelLayout: { hideOverlap: true },
+            label: {
+                show: true,
+                fontSize: 11,
+                formatter: function(params) {
+                    return '{name|' + params.name + '}\n{pct|' + params.data.percentage + '%}';
+                },
+                rich: {
+                    name: { fontSize: 11, color: '#2c3e50', lineHeight: 14 },
+                    pct:  { fontSize: 10, fontWeight: 'bold', color: '#497AB7', lineHeight: 14 }
+                }
+            },
+            labelLine: { length: 5, length2: 5, smooth: true, lineStyle: { color: '#bdc3c7' } },
+            itemStyle: { borderColor: '#ffffff', borderWidth: 2, borderRadius: 6 },
+            emphasis: { scale: true, scaleSize: 6, itemStyle: { shadowBlur: 16, shadowColor: 'rgba(73,122,183,.4)' } }
+        }]
+    });
+    roseChart.on('click', function(p){
+        if(p.componentType !== 'series') return;
+        window.parent.postMessage({type:'filter', filter:{source:'composition', disaster:p.name}}, '*');
+    });
+}
+
+function switchView(v){
+    if(v === active) return;
+    active = v;
+    document.querySelectorAll('.btn').forEach(function(b){ b.classList.toggle('active', b.dataset.v === v); });
+    document.getElementById('tree').classList.toggle('active', v === 'tree');
+    document.getElementById('rose').classList.toggle('active', v === 'rose');
+    if(v === 'tree'){ initTree(); treeChart.resize(); } else { initRose(); roseChart.resize(); }
+}
+
+document.querySelectorAll('.btn').forEach(function(b){
+    b.addEventListener('click', function(){ switchView(b.dataset.v); });
+});
+
+initTree();
+window.addEventListener('resize', function(){
+    if(treeChart) treeChart.resize();
+    if(roseChart) roseChart.resize();
+});
+</script>
+<script>
+(function(){
+  window.addEventListener('message', function(e){ var d = e.data || {};
+    if(d.type !== 'applyFilter') return;
+    var inst = (active === 'tree') ? (window.echarts ? echarts.getInstanceByDom(document.getElementById('tree')) : null)
+                                   : echarts.getInstanceByDom(document.getElementById('rose'));
+    if(!inst) return;
+    inst.dispatchAction({type:'downplay'});
+    if(!d.filter || !d.filter.disaster) return;
+    inst.dispatchAction({type:'highlight', seriesIndex:0, name:d.filter.disaster});
+  });
+})();
+</script>
+</body>
+</html>

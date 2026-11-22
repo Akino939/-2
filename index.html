@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>灾鉴 · 全球自然灾害风险图谱</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<script src="data.js"></script>
+<style>
+ * {margin:0;padding:0;box-sizing:border-box}
+ body {font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:#F2F6F3;color:#31403B}
+ header {display:flex;align-items:center;justify-content:space-between;padding:12px 22px;background:#fff;border-bottom:1px solid #E3EAE6;gap:16px;flex-wrap:wrap}
+ h1 {font-size:18px} .sub {font-size:11px;color:#7E8C85;margin-top:2px}
+ #chips {font-size:12px;color:#7E8C85}
+ .chip {background:#6AD1A3;color:#fff;border-radius:12px;padding:3px 12px;font-weight:bold}
+ .chip button {background:none;border:none;color:#fff;cursor:pointer;margin-left:6px}
+ /* 右上角：可视化交互信息 = 文字提示 + 可选筛选框 */
+ #panel {display:flex;align-items:center;gap:8px;flex-wrap:nowrap}
+ #panel .hint {font-size:11px;color:#7E8C85;white-space:nowrap}
+ #panel select {font-size:12px;color:#31403B;font-family:inherit;padding:4px 8px;border:1px solid #E3EAE6;border-radius:8px;background:#F7FAF8;cursor:pointer;outline:none}
+ #panel select:hover {border-color:#6AD1A3}
+ #panel #chips {min-width:0}
+ .kpis {display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:12px 22px 0}
+ .kpi {background:#fff;border:1px solid #E3EAE6;border-radius:10px;padding:10px 14px}
+ .kpi .v {font-size:20px;font-weight:700}
+ .kpi .l {font-size:11px} .kpi .s {font-size:10px;color:#7E8C85}
+ main {display:grid;grid-template-columns:repeat(12,1fr);gap:12px;padding:12px 22px}
+ .cell {background:#fff;border:1px solid #E3EAE6;border-radius:10px;overflow:hidden}
+ .cell h4 {font-size:12px;padding:8px 12px 0}
+ .cell iframe {width:100%;border:none;display:block;height:calc(100% - 28px)}
+ .s4{grid-column:span 4}.s5{grid-column:span 5}.s7{grid-column:span 7}
+ .r1{height:540px}.r2{height:440px}.r3{height:450px}
+ /* 三问三答 */
+ .qa {padding:8px 12px;overflow:auto;display:flex;flex-direction:column}
+ .qa h4 {padding:0 0 6px!important}
+ .qa-list {display:flex;flex-direction:column;gap:8px}
+ .qa-item {background:#F7FAF8;border:1px solid #E3EAE6;border-radius:8px;padding:8px 10px}
+ .qa-item .qa-q {display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#31403B;margin-bottom:4px}
+ .qa-tag {font-size:10px;color:#fff;border-radius:4px;padding:1px 6px;flex-shrink:0}
+ .qa-tag.t1 {background:#6AD1A3}
+ .qa-tag.t2 {background:#7FBDDA}
+ .qa-tag.t3 {background:#FFA288}
+ .qa-item .qa-a {font-size:11.5px;line-height:1.8;color:#5B6660}
+ /* 作者信息：固定在卡片底部空白处 */
+ .qa-authors {margin-top:auto;padding-top:10px;border-top:1px dashed #E3EAE6;font-size:11px;color:#7E8C85;text-align:right}
+ .qa-authors .qa-authors-title {font-size:10px;letter-spacing:2px;margin-bottom:6px;color:#9AA8A1}
+ .qa-author {display:flex;align-items:center;gap:6px;line-height:2;justify-content:flex-end}
+ .qa-handle {background:#EAF7F1;color:#3BA57E;border-radius:4px;padding:0 6px;font-size:10px;flex-shrink:0}
+ footer {padding:10px 22px;font-size:10.5px;color:#7E8C85}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>灾鉴 · 全球自然灾害风险图谱</h1>
+    <div class="sub">GLOBAL DISASTER ATLAS · 1990–2025 · 8 图联动 · ECharts 配置式实现</div>
+  </div>
+  <div id="panel">
+    <span class="hint">点击图表元素或在此筛选 → 全页联动</span>
+    <select id="f-cont" title="大洲"></select>
+    <select id="f-dis" title="灾种"></select>
+    <select id="f-month" title="月份"></select>
+    <div id="chips">当前无筛选</div>
+  </div>
+</header>
+
+<section class="kpis">
+  <div class="kpi"><div class="v" id="k1">–</div><div class="l">灾害事件</div><div class="s">10 类灾种 · 46 国</div></div>
+  <div class="kpi"><div class="v" id="k2">–</div><div class="l">累计死亡</div><div class="s">1990–2025 口径</div></div>
+  <div class="kpi"><div class="v" id="k3">–</div><div class="l">受影响人口</div><div class="s">洪涝干旱影响最广</div></div>
+  <div class="kpi"><div class="v" id="k4">–</div><div class="l">经济损失（美元）</div><div class="s">名义值</div></div>
+  <div class="kpi"><div class="v" id="k5">–</div><div class="l">覆盖国家</div><div class="s">ISO 国家码</div></div>
+</section>
+
+<main>
+  <div class="cell s7 r1"><h4>全球灾害点位分布 · 空间（点大小=死亡人数，颜色=灾种）</h4><iframe src="charts/map.html"></iframe></div>
+  <div class="cell s5 r1"><h4>灾种×月份热力矩阵 · 点格子=筛选</h4><iframe src="charts/mine.html"></iframe></div>
+  <div class="cell s4 r2"><h4>各类灾害逐年演变 · 堆叠面积</h4><iframe src="charts/area.html"></iframe></div>
+  <div class="cell s4 r2"><h4>Top15 受灾国家 · 指标可切换</h4><iframe src="charts/bar.html"></iframe></div>
+  <div class="cell s4 r2"><h4>国家风险散点 · 双对数</h4><iframe src="charts/scatter.html"></iframe></div>
+  <div class="cell s4 r3"><h4>灾种构成 · 矩形树图 / 玫瑰图（按钮切换）</h4><iframe src="charts/composition.html"></iframe></div>
+  <div class="cell s4 r3"><h4>旭日图 · 大洲→国家→灾种下钻</h4><iframe src="charts/sunburst.html"></iframe></div>
+  <div class="cell s4 r3 qa"><h4>读图结论 · 三问三答</h4>
+    <div class="qa-list">
+      <div class="qa-item">
+        <div class="qa-q"><span class="qa-tag t1">哪里</span>灾害热点集中在哪些区域？</div>
+        <div class="qa-a">环太平洋地震带与南亚洪涝区为两大热点；印度尼西亚事件量居首。</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-q"><span class="qa-tag t2">哪种</span>哪类灾害造成的影响最大？</div>
+        <div class="qa-a">地震+洪水约占事件总量五成；死亡/损失口径下台风、干旱同样致命。</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-q"><span class="qa-tag t3">何时</span>灾害发生有时间规律吗？</div>
+        <div class="qa-a">7–9 月洪涝+台风叠加峰值；地震全年均匀无季节性。</div>
+      </div>
+    </div>
+    <div class="qa-authors">
+      <div class="qa-authors-title">作者信息</div>
+      <div class="qa-author"><span class="qa-handle">@24计科2班</span>张艺秋</div>
+      <div class="qa-author"><span class="qa-handle">@24人智2班</span>岳敬一</div>
+      <div class="qa-author"><span class="qa-handle">@24人智1班</span>付兴悦</div>
+    </div>
+  </div>
+</main>
+
+<footer>数据口径：1990–2025（2026 年 87 条不入图）；季节字段已按月份修复 12.1% 矛盾值；地震重复计数已按「日期+国家+灾种」去重；Russia/Turkey 大洲标签已规范化。来源：EM-DAT 公开数据库。</footer>
+
+<script>
+document.getElementById('k1').textContent = window.KPI.events.toLocaleString();
+document.getElementById('k2').textContent = (window.KPI.deaths/10000).toFixed(1)+' 万';
+document.getElementById('k3').textContent = (window.KPI.affected/1e8).toFixed(2)+' 亿';
+document.getElementById('k4').textContent = (window.KPI.damage/1e12).toFixed(2)+' 万亿';
+document.getElementById('k5').textContent = window.KPI.countries;
+
+var MONTHS = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+var CONTINENTS = ['亚洲','非洲','南美洲','北美洲','欧洲','大洋洲'];
+var DISASTER_NAMES = Object.keys(window.DISASTER_ZH || {}).map(function(k){ return window.DISASTER_ZH[k]; });
+if(!DISASTER_NAMES.length) DISASTER_NAMES = ['地震','洪水','台风/飓风','野火','干旱','滑坡','龙卷风','海啸','火山喷发','雪崩'];
+
+/* ===== 右上角筛选选项框 ===== */
+var SEL = {
+  continent: document.getElementById('f-cont'),
+  disaster:  document.getElementById('f-dis'),
+  month:     document.getElementById('f-month')
+};
+function fillSel(sel, allLabel, items){
+  sel.innerHTML = '<option value="">'+allLabel+'</option>' +
+    items.map(function(it, i){
+      var v = (sel === SEL.month) ? i : it;
+      return '<option value="'+v+'">'+it+'</option>';
+    }).join('');
+}
+fillSel(SEL.continent, '全部大洲', CONTINENTS);
+fillSel(SEL.disaster, '全部灾种', DISASTER_NAMES);
+fillSel(SEL.month, '全部月份', MONTHS);
+
+function selFilter(){
+  var f = {source:'panel'};
+  if(SEL.continent.value) f.continent = SEL.continent.value;
+  if(SEL.disaster.value)  f.disaster  = SEL.disaster.value;
+  if(SEL.month.value !== '') f.month = +SEL.month.value;
+  return (f.continent || f.disaster || f.month != null) ? f : null;
+}
+function syncSels(f){
+  SEL.continent.value = (f && f.continent) ? f.continent : '';
+  SEL.disaster.value  = (f && f.disaster)  ? f.disaster  : '';
+  SEL.month.value     = (f && f.month != null) ? f.month : '';
+}
+[SEL.continent, SEL.disaster, SEL.month].forEach(function(s){
+  s.addEventListener('change', function(){
+    var f = selFilter();
+    if(f) broadcast(f); else broadcast(null);
+    setChips(f);
+  });
+});
+
+function setChips(f){
+  document.getElementById('chips').innerHTML = f
+    ? '<span class="chip">'+chipText(f)+'<button onclick="broadcast(null);this.parentNode.parentNode.innerHTML=\'当前无筛选\'">×</button></span>'
+    : '当前无筛选';
+}
+
+function chipText(f){
+  var p=[];
+  if(f.continent)p.push(f.continent);
+  if(f.country)p.push(f.country);
+  if(f.disaster)p.push(f.disaster);
+  if(f.month!=null)p.push(MONTHS[f.month]);
+  return p.join(' · ');
+}
+function broadcast(filter){
+  if(!filter) syncSels(null);
+  document.querySelectorAll('iframe').forEach(function(f){
+    f.contentWindow.postMessage({type:'applyFilter', filter:filter}, '*');
+  });
+}
+window.addEventListener('message', function(e){
+  var d = e.data || {};
+  if(d.type !== 'filter') return;
+  syncSels(d.filter);
+  broadcast(d.filter);
+  document.getElementById('chips').innerHTML = d.filter
+    ? '<span class="chip">'+chipText(d.filter)+'<button onclick="broadcast(null);this.parentNode.parentNode.innerHTML=\'当前无筛选\'">×</button></span>'
+    : '当前无筛选';
+});
+</script>
+</body>
+</html>

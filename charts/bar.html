@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Top15 受灾国家横向柱状图</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+body { padding:24px; background:#F5F7FA; font-family:"Microsoft YaHei","PingFang SC",Arial,sans-serif; color:#2F3540; }
+.card { background:#fff; border:1px solid #E6EBF0; border-radius:12px; box-shadow:0 4px 16px rgba(73,122,183,.10); padding:16px; }
+h3 { font-size:17px; font-weight:600; margin:0 0 14px 4px; border-left:4px solid #497AB7; padding-left:10px; }
+.btns { display:flex; gap:10px; margin:0 0 12px 4px; flex-wrap:wrap; }
+.btn { padding:7px 16px; font-size:13px; border-radius:6px; cursor:pointer; user-select:none; background:#fff; color:#497AB7; border:1px solid #BDE2ED; transition:.2s; font-family:inherit; }
+.btn:hover { background:#F0FAD9; }
+.btn.active { background:#497AB7; color:#fff; border-color:#497AB7; }
+#chart { width:100%; height:600px; }
+</style>
+<style>html,body{height:100%!important;margin:0!important;padding:0!important;background:#fff!important;overflow:hidden}#chart{width:100%!important}.card{box-shadow:none!important;border:none!important;margin:0!important;padding:0!important;height:100%!important;display:flex!important;flex-direction:column!important}#ttl{display:none!important}#chart{flex:1!important;height:auto!important;min-height:0!important;margin-top:0!important}.btns{padding:8px 2px!important;margin:10px 0 6px!important;flex-wrap:nowrap!important;gap:6px!important;justify-content:center!important;flex-shrink:0}.btn{padding:4px 10px!important;font-size:11px!important;white-space:nowrap}</style></head>
+<body>
+
+<div class="card">
+  <div class="btns">
+    <button class="btn active" data-k="events">事件数</button>
+    <button class="btn" data-k="deaths">死亡人数</button>
+    <button class="btn" data-k="affected">受影响人数</button>
+    <button class="btn" data-k="damage">经济损失</button>
+  </div>
+  <div id="chart"></div>
+</div>
+<script>
+const COUNTRY_DATA = [{"name": "Afghanistan", "region": "Asia", "events": 63, "deaths": 1642, "affected": 804400, "damage": 185.6, "main": "地震", "cn": "阿富汗"}, {"name": "Algeria", "region": "Africa", "events": 82, "deaths": 39333, "affected": 7890534, "damage": 147.7, "main": "野火", "cn": "阿尔及利亚"}, {"name": "Argentina", "region": "South America", "events": 47, "deaths": 3139, "affected": 1617043, "damage": 157.9, "main": "野火", "cn": "阿根廷"}, {"name": "Armenia", "region": "Asia", "events": 17, "deaths": 215, "affected": 99768, "damage": 2.6, "main": "地震", "cn": "亚美尼亚"}, {"name": "Australia", "region": "Oceania", "events": 318, "deaths": 23520, "affected": 11206255, "damage": 2641.8, "main": "洪水", "cn": "澳大利亚"}, {"name": "Bangladesh", "region": "Asia", "events": 323, "deaths": 25253, "affected": 8378067, "damage": 757.2, "main": "洪水", "cn": "孟加拉国"}, {"name": "Brazil", "region": "South America", "events": 323, "deaths": 12638, "affected": 8691106, "damage": 1698.8, "main": "洪水", "cn": "巴西"}, {"name": "Canada", "region": "North America", "events": 55, "deaths": 10125, "affected": 3913268, "damage": 80.7, "main": "野火", "cn": "加拿大"}, {"name": "Chile", "region": "South America", "events": 353, "deaths": 85545, "affected": 24785716, "damage": 1438.4, "main": "地震", "cn": "智利"}, {"name": "China", "region": "Asia", "events": 443, "deaths": 53892, "affected": 20423548, "damage": 9458.8, "main": "地震", "cn": "中国"}, {"name": "Colombia", "region": "South America", "events": 347, "deaths": 16617, "affected": 7267789, "damage": 2444.8, "main": "洪水", "cn": "哥伦比亚"}, {"name": "Ecuador", "region": "South America", "events": 59, "deaths": 5731, "affected": 2647152, "damage": 493.8, "main": "地震", "cn": "厄瓜多尔"}, {"name": "Ethiopia", "region": "Africa", "events": 13, "deaths": 1753, "affected": 642593, "damage": 119.5, "main": "地震", "cn": "埃塞俄比亚"}, {"name": "France", "region": "Europe", "events": 53, "deaths": 2129, "affected": 826230, "damage": 515.5, "main": "野火", "cn": "法国"}, {"name": "Greece", "region": "Europe", "events": 133, "deaths": 20853, "affected": 8282628, "damage": 402.5, "main": "地震", "cn": "希腊"}, {"name": "Guatemala", "region": "North America", "events": 28, "deaths": 3373, "affected": 1295871, "damage": 40.4, "main": "地震", "cn": "危地马拉"}, {"name": "Haiti", "region": "North America", "events": 39, "deaths": 6772, "affected": 1572989, "damage": 888.2, "main": "地震", "cn": "海地"}, {"name": "India", "region": "Asia", "events": 486, "deaths": 85829, "affected": 25274309, "damage": 750.4, "main": "洪水", "cn": "印度"}, {"name": "Indonesia", "region": "Asia", "events": 712, "deaths": 90355, "affected": 32381697, "damage": 8433.3, "main": "地震", "cn": "印尼"}, {"name": "Iran", "region": "Asia", "events": 71, "deaths": 8723, "affected": 2005104, "damage": 24.4, "main": "地震", "cn": "伊朗"}, {"name": "Italy", "region": "Europe", "events": 141, "deaths": 13152, "affected": 4103147, "damage": 474.4, "main": "地震", "cn": "意大利"}, {"name": "Japan", "region": "Asia", "events": 434, "deaths": 94531, "affected": 19272177, "damage": 5245.2, "main": "地震", "cn": "日本"}, {"name": "Kenya", "region": "Africa", "events": 261, "deaths": 44109, "affected": 19651136, "damage": 1489.7, "main": "洪水", "cn": "肯尼亚"}, {"name": "Mexico", "region": "North America", "events": 474, "deaths": 43625, "affected": 22366023, "damage": 3267.8, "main": "地震", "cn": "墨西哥"}, {"name": "Morocco", "region": "Africa", "events": 105, "deaths": 20902, "affected": 6345526, "damage": 170.3, "main": "野火", "cn": "摩洛哥"}, {"name": "Myanmar", "region": "Asia", "events": 333, "deaths": 65211, "affected": 25609180, "damage": 2285.7, "main": "洪水", "cn": "缅甸"}, {"name": "Nepal", "region": "Asia", "events": 422, "deaths": 29832, "affected": 14362942, "damage": 1260.0, "main": "地震", "cn": "尼泊尔"}, {"name": "New Zealand", "region": "Oceania", "events": 89, "deaths": 3926, "affected": 1946247, "damage": 150.7, "main": "地震", "cn": "新西兰"}, {"name": "Nigeria", "region": "Africa", "events": 284, "deaths": 40670, "affected": 14706067, "damage": 2195.4, "main": "洪水", "cn": "尼日利亚"}, {"name": "Pakistan", "region": "Asia", "events": 330, "deaths": 25202, "affected": 10310649, "damage": 2973.8, "main": "洪水", "cn": "巴基斯坦"}, {"name": "Papua New Guinea", "region": "Oceania", "events": 31, "deaths": 375, "affected": 428443, "damage": 40.5, "main": "地震", "cn": "巴布亚新几内亚"}, {"name": "Peru", "region": "South America", "events": 138, "deaths": 154355, "affected": 67186160, "damage": 163.0, "main": "地震", "cn": "秘鲁"}, {"name": "Philippines", "region": "Asia", "events": 516, "deaths": 29539, "affected": 11931617, "damage": 1961.5, "main": "地震", "cn": "菲律宾"}, {"name": "Portugal", "region": "Europe", "events": 48, "deaths": 5145, "affected": 2573308, "damage": 980.5, "main": "野火", "cn": "葡萄牙"}, {"name": "Romania", "region": "Europe", "events": 10, "deaths": 215, "affected": 144388, "damage": 35.0, "main": "地震", "cn": "罗马尼亚"}, {"name": "Russia", "region": "Asia/Europe", "events": 75, "deaths": 1669, "affected": 817170, "damage": 130.6, "main": "野火", "cn": "俄罗斯"}, {"name": "Somalia", "region": "Africa", "events": 297, "deaths": 22928, "affected": 11202034, "damage": 1093.7, "main": "洪水", "cn": "索马里"}, {"name": "South Africa", "region": "Africa", "events": 44, "deaths": 4504, "affected": 1752937, "damage": 52.1, "main": "野火", "cn": "南非"}, {"name": "South Sudan", "region": "Africa", "events": 296, "deaths": 30298, "affected": 12508136, "damage": 843.4, "main": "洪水", "cn": "南苏丹"}, {"name": "Spain", "region": "Europe", "events": 55, "deaths": 2508, "affected": 2071274, "damage": 672.6, "main": "野火", "cn": "西班牙"}, {"name": "Sudan", "region": "Africa", "events": 247, "deaths": 9094, "affected": 5052092, "damage": 636.9, "main": "洪水", "cn": "苏丹"}, {"name": "Taiwan", "region": "Asia", "events": 27, "deaths": 490, "affected": 351355, "damage": 172.9, "main": "地震", "cn": "中国台湾"}, {"name": "Thailand", "region": "Asia", "events": 324, "deaths": 24889, "affected": 7309647, "damage": 2272.5, "main": "洪水", "cn": "泰国"}, {"name": "Turkey", "region": "Europe/Asia", "events": 218, "deaths": 12511, "affected": 4540398, "damage": 1783.9, "main": "地震", "cn": "土耳其"}, {"name": "United States", "region": "North America", "events": 578, "deaths": 64351, "affected": 47539050, "damage": 2927.9, "main": "地震", "cn": "美国"}, {"name": "Vietnam", "region": "Asia", "events": 258, "deaths": 89926, "affected": 30828721, "damage": 980.7, "main": "洪水", "cn": "越南"}];
+const REG_CN = {"Asia": "亚洲", "Africa": "非洲", "Europe": "欧洲", "North America": "北美洲", "South America": "南美洲", "Oceania": "大洋洲", "Asia/Europe": "亚欧", "Europe/Asia": "欧亚"};
+const METRIC = {
+  events: { label: '事件数', unit: '起', title: '按灾害事件数' },
+  deaths: { label: '死亡人数', unit: '人', title: '按死亡人数' },
+  affected: { label: '受影响人数', unit: '人', title: '按受影响人数' },
+  damage: { label: '经济损失', unit: '亿美元', title: '按经济损失（亿美元）' }
+};
+function fmt (k, v) {
+  if (k === 'deaths' || k === 'affected') {
+    if (v >= 1e8) return (v / 1e8).toFixed(2) + ' 亿';
+    if (v >= 1e4) return (v / 1e4).toFixed(1) + ' 万';
+    return String(v);
+  }
+  if (k === 'damage') return v.toFixed(1);
+  return v.toLocaleString('zh-CN');
+}
+const GRAD = [['#497AB7', '#BDE2ED'], ['#7EB6D5', '#F0FAD9'], ['#FCB567', '#FEEAA1']];
+const chart = echarts.init(document.getElementById('chart'));
+
+function render (key) {
+  const top = COUNTRY_DATA.slice().sort(function (a, b) { return b[key] - a[key]; }).slice(0, 15);
+  chart.setOption({
+    grid: { left: 112, right: 104, top: 20, bottom: 36 },
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: function (p) {
+        const d = top[p[0].dataIndex];
+        return '<b>' + d.cn + '</b>（' + REG_CN[d.region] + '）<br/>' + METRIC[key].label + '：'
+          + fmt(key, d[key]) + ' ' + METRIC[key].unit + '<br/>主要灾种：' + d.main;
+    }},
+    xAxis: { type: 'value', max: function (v) { return Math.ceil(v.max * 1.15 / 50) * 50; },
+      axisLabel: { color: '#5B6473', formatter: function (v) { return fmt(key, v); } },
+      splitLine: { lineStyle: { color: '#EFF3F7' } }, axisLine: { show: false }, axisTick: { show: false } },
+    yAxis: { type: 'category', data: top.map(function (d) { return d.cn; }), inverse: true,
+      axisLabel: { color: '#2F3540', fontSize: 13 }, axisLine: { lineStyle: { color: '#D8DDE6' } }, axisTick: { show: false } },
+    series: [{ type: 'bar', barWidth: '56%',
+      data: top.map(function (d, i) {
+        const g = i < 5 ? GRAD[0] : (i < 10 ? GRAD[1] : GRAD[2]);
+        return { value: d[key], itemStyle: { borderRadius: [0, 4, 4, 0],
+          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: g[0] }, { offset: 1, color: g[1] }]) } };
+      }),
+      label: { show: true, position: 'right', color: '#497AB7', fontSize: 12,
+        formatter: function (p) { return fmt(key, p.value); } },
+      emphasis: { itemStyle: { color: '#F27144' } } }]
+  }, true);
+  document.getElementById('ttl').textContent = 'Top15 受灾最严重国家 —— ' + METRIC[key].title;
+}
+document.querySelectorAll('.btn').forEach(function (b) {
+  b.addEventListener('click', function () {
+    document.querySelectorAll('.btn').forEach(function (x) { x.classList.remove('active'); });
+    b.classList.add('active'); render(b.dataset.k);
+  });
+});
+render('events');
+window.addEventListener('resize', function () { chart.resize(); });
+</script>
+<style></style><script>
+(function(){
+  var dom = document.getElementById('chart'); if(!dom) return;
+  var inst = null;
+  function boot(){ inst = echarts.getInstanceByDom(dom); if(!inst){ setTimeout(boot,150); return; }
+    inst.on('click', function(p){ var f = (function(p){ return {source:"bar", country: p.name}; })(p); if(f) window.parent.postMessage({type:'filter', filter:f},'*'); });
+  }
+  boot();
+  window.addEventListener('message', function(e){ var d = e.data || {};
+    if(d.type !== 'applyFilter') return; (function(inst,f){ if(!inst) return; inst.dispatchAction({type:"downplay"}); if(!f||!f.country) return; var y = inst.getOption().yAxis[0].data; var idx = y.indexOf(f.country); if(idx>=0) inst.dispatchAction({type:"highlight", seriesIndex:0, dataIndex:idx}); })(inst, d.filter); });
+})();
+</script></body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>灾鉴 · 灾种×月份热力矩阵（真实数据版）</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<script src="../data.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"PingFang SC","Microsoft YaHei",sans-serif; background:#F2F6F3; color:#31403B; }
+  header { display:flex; align-items:center; justify-content:space-between; padding:14px 24px; background:#fff; border-bottom:1px solid #E3EAE6; }
+  header h1 { font-size:18px; }
+  header .sub { font-size:11px; color:#7E8C85; margin-top:2px; }
+  #chips { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .chip { background:#6AD1A3; color:#fff; border-radius:12px; padding:3px 12px; font-size:12px; font-weight:bold; }
+  .chip button { background:none; border:none; color:#fff; cursor:pointer; margin-left:6px; font-size:13px; }
+  .clearbtn { background:#EDF2EF; border:1px solid #E3EAE6; border-radius:12px; padding:3px 12px; font-size:12px; color:#7E8C85; cursor:pointer; }
+  main { display:grid; grid-template-columns:1fr; gap:16px; padding:16px 24px; }
+  .card { background:#fff; border:1px solid #E3EAE6; border-radius:12px; padding:16px; }
+  .card h3 { font-size:14px; display:flex; align-items:center; gap:8px; }
+  .tag { font-size:10px; font-weight:normal; color:#6AD1A3; background:#EAF7F1; padding:2px 8px; border-radius:10px; }
+  .chart { height:440px; margin-top:8px; }
+</style>
+<style>
+header{display:none!important} body{background:#fff!important}
+main{padding:4px 8px!important;gap:8px!important} .card{padding:8px!important;border:none!important}
+.card h3{display:none!important} .chart{height:calc(100vh - 60px)!important;margin-top:14px!important}
+</style></head>
+<body>
+
+<header>
+  <div>
+    <h1>灾鉴 · 灾种×月份热力矩阵</h1>
+    <div class="sub" id="subtitle">GLOBAL DISASTER ATLAS · 点格子 = 全局筛选（再次点击取消）</div>
+  </div>
+  <div id="chips"></div>
+</header>
+
+<main>
+  <section class="card">
+    <h3>灾种 × 月份 热力矩阵 <span class="tag">点格子 = 全局筛选</span></h3>
+    <div id="heatmap" class="chart"></div>
+  </section>
+</main>
+
+<script>
+/* ===== 灾种配色（与全站一致）===== */
+const DISASTER_COLORS = {
+  '地震':'#FFA288','洪水':'#7FBDDA','台风/飓风':'#6AD1A3','野火':'#FFD47D','干旱':'#C49892',
+  '滑坡':'#84ADDC','龙卷风':'#BBC7BE','海啸':'#929EAB','火山喷发':'#D9B3AC','雪崩':'#E8EDEA'
+};
+const DISASTERS = Object.keys(DISASTER_COLORS);
+const MONTHS = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+/* ===== FilterBus ===== */
+const Bus = {
+  filter: null, listeners: [],
+  set(f){ this.filter = f; this.emit(); },
+  clear(){ this.filter = null; this.emit(); },
+  subscribe(fn){ this.listeners.push(fn); },
+  emit(){ this.listeners.forEach(fn => fn(this.filter)); renderChips(); }
+};
+function filterText(f){
+  const p = [];
+  if(f.continent) p.push(f.continent);
+  if(f.country)   p.push(f.country);
+  if(f.disaster)  p.push(f.disaster);
+  if(f.month != null) p.push(MONTHS[f.month]);
+  return p.join(' · ');
+}
+function renderChips(){
+  const box = document.getElementById('chips');
+  if(!Bus.filter){ box.innerHTML = '<span style="font-size:12px;color:#7E8C85">当前无筛选 · 点击任意图表元素试试</span>'; return; }
+  box.innerHTML = `<span class="chip">${filterText(Bus.filter)}<button onclick="Bus.clear()">×</button></span>
+                   <button class="clearbtn" onclick="Bus.clear()">清除全部</button>`;
+}
+
+/* ===== 数据：优先取 ../data.js 的真实数据，缺失时回退 mock ===== */
+let seed = 42;
+function rnd(){ seed = (seed*9301+49297)%233280; return seed/233280; }
+function mockHeatData(){
+  const w = {'地震':1.4,'洪水':1.2,'台风/飓风':0.8,'野火':0.5,'干旱':0.5,'滑坡':0.4,'龙卷风':0.35,'海啸':0.3,'火山喷发':0.3,'雪崩':0.15};
+  const out = [];
+  DISASTERS.forEach(d => { for(let m=1;m<=12;m++) out.push({disaster:d, month:m, count:Math.round(30*w[d]*(0.5+rnd()))}); });
+  return out;
+}
+const HEAT_DATA = window.HEAT_DATA || mockHeatData();
+
+if(window.KPI){
+  document.getElementById('subtitle').textContent =
+    `GLOBAL DISASTER ATLAS · ${window.KPI.year_range} · ${window.KPI.events.toLocaleString()} 起 · ${window.KPI.countries} 国（2026 不完整已截尾）`;
+}
+
+/* ===== 热力矩阵 ===== */
+const heatChart = echarts.init(document.getElementById('heatmap'));
+let heatSel = null;
+
+function heatOption(){
+  const vals = HEAT_DATA.map(d => Math.log1p(d.count));
+  const vmax = Math.ceil(Math.max(...vals));
+  const data = HEAT_DATA.map(d => {
+    const hit = heatSel && (heatSel.disaster==null || heatSel.disaster===d.disaster)
+                        && (heatSel.month==null   || heatSel.month===d.month);
+    return { value:[d.month-1, d.disaster, Math.log1p(d.count)], _count:d.count,
+      itemStyle: hit ? {borderColor:'#31403B', borderWidth:2.5, borderRadius:4}
+                     : {borderColor:'#fff', borderWidth:2, borderRadius:4} };
+  });
+  return {
+    grid:{ left:64, right:16, top:8, bottom:104 },
+    tooltip:{ formatter: p => `<b>${p.value[1]}</b> · ${MONTHS[p.value[0]]}<br/>事件 ${p.data._count} 起` },
+    xAxis:{ type:'category', data:MONTHS, splitArea:{show:true}, axisLine:{show:false}, axisTick:{show:false},
+            name:'月份', nameLocation:'middle', nameGap:28, nameTextStyle:{color:'#7E8C85',fontSize:11} },
+    yAxis:{ type:'category', data:DISASTERS, inverse:true, splitArea:{show:true}, axisLine:{show:false},
+            axisTick:{show:false}, name:'灾种', nameTextStyle:{color:'#7E8C85',fontSize:11} },
+    visualMap:{ min:0, max:vmax, calculable:true, orient:'horizontal', left:'center', bottom:4,
+      text:['事件多','事件少'],
+      formatter: v => String(Math.round(Math.expm1(v))),
+      textStyle:{color:'#7E8C85',fontSize:10},
+      inRange:{ color:['#F2F7F4','#C6E8D6','#6AD1A3','#7FBDDA','#84ADDC'] } },
+    series:[{ type:'heatmap', data, emphasis:{ itemStyle:{ shadowBlur:8, shadowColor:'rgba(49,64,59,.35)' } } }]
+  };
+}
+function renderHeat(){ heatChart.setOption(heatOption()); }
+
+heatChart.on('click', p => {
+  if(p.componentType !== 'series') return;
+  const [monthIdx, disaster] = p.value, month = monthIdx + 1;
+  const same = heatSel && heatSel.source==='heatmap' && heatSel.disaster===disaster && heatSel.month===month;
+  if(same){ heatSel = null; Bus.clear(); }
+  else { heatSel = {source:'heatmap', disaster, month}; Bus.set({...heatSel}); }
+  renderHeat();
+});
+Bus.subscribe(f => {
+  if(f && f.source==='heatmap') return;
+  heatSel = f ? { disaster: f.disaster ?? null, month: f.month ?? null } : null;
+  renderHeat();
+});
+
+/* ===== init ===== */
+renderHeat();
+renderChips();
+window.addEventListener('resize', () => { heatChart.resize(); });
+</script>
+<script>
+(function(){
+  var _set = Bus.set.bind(Bus), _clear = Bus.clear.bind(Bus), _silent = false;
+  Bus.set = function(f){ _set(f); if(!_silent) window.parent.postMessage({type:'filter', filter:f}, '*'); };
+  Bus.clear = function(){ _clear(); if(!_silent) window.parent.postMessage({type:'filter', filter:null}, '*'); };
+  window.addEventListener('message', function(e){ var d = e.data || {};
+    if(d.type !== 'applyFilter') return;
+    _silent = true;
+    if(!d.filter) _clear(); else if(d.filter.source !== 'heatmap') _set(d.filter);
+    _silent = false;
+  });
+})();
+</script></body>
+</html>
